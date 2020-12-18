@@ -9,6 +9,7 @@ import { Layer } from './Layer';
 import { DD } from './DragAndDrop';
 import { _registerNode } from './Global';
 import * as PointerEvents from './PointerEvents';
+import { Node } from './Node';
 
 export interface StageConfig extends ContainerConfig {
   container: HTMLDivElement | string;
@@ -85,11 +86,12 @@ var STAGE = 'Stage',
   // cached variables
   eventsLength = EVENTS.length;
 
-function addEvent(ctx, eventName) {
+function addEvent(ctx: Stage, eventName: string) {
   ctx.content.addEventListener(
     eventName,
     function (evt) {
-      ctx[UNDERSCORE + eventName](evt);
+      const fn = (ctx as any)[UNDERSCORE + eventName];
+      fn(evt);
     },
     false
   );
@@ -125,18 +127,18 @@ function checkNoClip(attrs: any = {}) {
  */
 
 export class Stage extends Container<Layer> {
-  content: HTMLDivElement;
-  pointerPos: Vector2d | null;
+  content!: HTMLDivElement;
+  pointerPos: Vector2d | null | undefined;
   _pointerPositions: (Vector2d & { id?: number })[] = [];
   _changedPointerPositions: (Vector2d & { id?: number })[] = [];
 
-  bufferCanvas: SceneCanvas;
-  bufferHitCanvas: HitCanvas;
-  targetShape: Shape;
-  clickStartShape: Shape;
-  clickEndShape: Shape;
-  tapStartShape: Shape;
-  tapEndShape: Shape;
+  bufferCanvas!: SceneCanvas;
+  bufferHitCanvas!: HitCanvas;
+  targetShape: Shape | null = null;
+  clickStartShape?: Shape;
+  clickEndShape: Shape | null = null;
+  tapStartShape: Shape | null = null;
+  tapEndShape: Shape | null = null;
   dblTimeout: any;
 
   constructor(config: StageConfig) {
@@ -155,7 +157,7 @@ export class Stage extends Container<Layer> {
     this._checkVisibility();
   }
 
-  _validateAdd(child) {
+  _validateAdd(child: Node) {
     const isLayer = child.getType() === 'Layer';
     const isFastLayer = child.getType() === 'FastLayer';
     const valid = isLayer || isFastLayer;
@@ -177,30 +179,44 @@ export class Stage extends Container<Layer> {
    * @name Konva.Stage#setContainer
    * @param {DomElement} container can pass in a dom element or id string
    */
-  setContainer(container) {
-    if (typeof container === STRING) {
+  setContainer(container: string | Element) {
+    let _container: Element;
+    if (typeof container === 'string') {
       if (container.charAt(0) === '.') {
-        var className = container.slice(1);
-        container = document.getElementsByClassName(className)[0];
+        const className = container.slice(1);
+        const el = document.getElementsByClassName(className)[0];
+        if (!el) {
+          throw new Error(
+            'Can not find container in document with className ' + className
+          );
+        }
+
+        _container = el;
       } else {
-        var id;
+        let id;
         if (container.charAt(0) !== '#') {
           id = container;
         } else {
           id = container.slice(1);
         }
-        container = document.getElementById(id);
+
+        const el = document.getElementById(id);
+        if (!el) {
+          throw new Error('Can not find container in document with id ' + id);
+        }
+
+        _container = el;
       }
-      if (!container) {
-        throw 'Can not find container in document with id ' + id;
-      }
+    } else {
+      _container = container;
     }
-    this._setAttr(CONTAINER, container);
+
+    this._setAttr(CONTAINER, _container);
     if (this.content) {
       if (this.content.parentElement) {
         this.content.parentElement.removeChild(this.content);
       }
-      container.appendChild(this.content);
+      _container.appendChild(this.content);
     }
     return this;
   }
@@ -751,8 +767,8 @@ export class Stage extends Container<Layer> {
   _touchend(evt) {
     this.setPointersPositions(evt);
 
-    var tapEndShape = this.tapEndShape,
-      fireDblClick = false;
+    const tapEndShape = this.tapEndShape;
+    let fireDblClick = false;
 
     if (Konva.inDblClickWindow) {
       fireDblClick = true;
@@ -1020,7 +1036,7 @@ export class Stage extends Container<Layer> {
       scaleY: rect.height / this.content.clientHeight || 1,
     };
   }
-  _buildDOM() {
+  private _buildDOM() {
     this.bufferCanvas = new SceneCanvas({
       width: this.width(),
       height: this.height(),

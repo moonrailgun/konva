@@ -259,7 +259,7 @@ export class Context {
       this.setAttr('lineCap', lineCap);
     }
   }
-  _applyOpacity(shape) {
+  _applyOpacity(shape: Shape) {
     var absOpacity = shape.getAbsoluteOpacity();
     if (absOpacity !== 1) {
       this.setAttr('globalAlpha', absOpacity);
@@ -281,7 +281,14 @@ export class Context {
    * @method
    * @name Konva.Context#arc
    */
-  arc(a0, a1, a2, a3, a4, a5) {
+  arc(
+    a0: number,
+    a1: number,
+    a2: number,
+    a3: number,
+    a4: number,
+    a5?: boolean
+  ) {
     this._context.arc(a0, a1, a2, a3, a4, a5);
   }
   /**
@@ -289,7 +296,7 @@ export class Context {
    * @method
    * @name Konva.Context#arcTo
    */
-  arcTo(a0, a1, a2, a3, a4) {
+  arcTo(a0: number, a1: number, a2: number, a3: number, a4: number) {
     this._context.arcTo(a0, a1, a2, a3, a4);
   }
   /**
@@ -305,7 +312,14 @@ export class Context {
    * @method
    * @name Konva.Context#bezierCurveTo
    */
-  bezierCurveTo(a0, a1, a2, a3, a4, a5) {
+  bezierCurveTo(
+    a0: number,
+    a1: number,
+    a2: number,
+    a3: number,
+    a4: number,
+    a5: number
+  ) {
     this._context.bezierCurveTo(a0, a1, a2, a3, a4, a5);
   }
   /**
@@ -313,7 +327,7 @@ export class Context {
    * @method
    * @name Konva.Context#clearRect
    */
-  clearRect(a0, a1, a2, a3) {
+  clearRect(a0: number, a1: number, a2: number, a3: number) {
     this._context.clearRect(a0, a1, a2, a3);
   }
   /**
@@ -778,10 +792,10 @@ export class SceneContext extends Context {
       this.setAttr('strokeStyle', grd);
     }
   }
-  _stroke(shape) {
-    var dash = shape.dash(),
-      // ignore strokeScaleEnabled for Text
-      strokeScaleEnabled = shape.getStrokeScaleEnabled();
+  _stroke(shape: Shape) {
+    const dash = shape.dash();
+    // ignore strokeScaleEnabled for Text
+    const strokeScaleEnabled = shape.getStrokeScaleEnabled();
 
     if (shape.hasStroke()) {
       if (!strokeScaleEnabled) {
@@ -798,11 +812,11 @@ export class SceneContext extends Context {
 
       this.setAttr('lineWidth', shape.strokeWidth());
 
-      if (!shape.getShadowForStrokeEnabled()) {
+      if (!shape.shadowForStrokeEnabled()) {
         this.setAttr('shadowColor', 'rgba(0,0,0,0)');
       }
 
-      var hasLinearGradient = shape.getStrokeLinearGradientColorStops();
+      const hasLinearGradient = shape.strokeLinearGradientColorStops();
       if (hasLinearGradient) {
         this._strokeLinearGradient(shape);
       } else {

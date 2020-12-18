@@ -535,7 +535,7 @@ export abstract class Node<Config extends NodeConfig = NodeConfig> {
     // redefine in Container and Shape
     throw new Error('abstract "getClientRect" method call');
   }
-  _transformedRect(rect: IRect, top: Node) {
+  _transformedRect(rect: IRect, top?: Node) {
     var points = [
       { x: rect.x, y: rect.y },
       { x: rect.x + rect.width, y: rect.y },

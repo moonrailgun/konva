@@ -5,7 +5,7 @@ import { DD } from './DragAndDrop';
 import { getNumberValidator } from './Validators';
 import { Konva } from './Global';
 
-import { GetSet, IRect } from './types';
+import { GetSet, IRect, Vector2d } from './types';
 import { Shape } from './Shape';
 import { HitCanvas, SceneCanvas } from './Canvas';
 
@@ -31,7 +31,7 @@ export interface ContainerConfig extends NodeConfig {
 export abstract class Container<ChildType extends Node> extends Node<
   ContainerConfig
 > {
-  children = new Collection<ChildType>();
+  children: Collection<ChildType> = new Collection<ChildType>();
 
   /**
    * returns a {@link Konva.Collection} of direct descendant nodes
@@ -118,23 +118,23 @@ export abstract class Container<ChildType extends Node> extends Node<
    * // remember to redraw layer if you changed something
    * layer.draw();
    */
-  add(...children: ChildType[]) {
+  add(...children: ChildType[]): Container<ChildType> {
     if (arguments.length > 1) {
-      for (var i = 0; i < arguments.length; i++) {
+      for (let i = 0; i < arguments.length; i++) {
         this.add(arguments[i]);
       }
       return this;
     }
-    var child = children[0];
+    const child = children[0];
     if (child.getParent()) {
       child.moveTo(this);
       return this;
     }
-    var _children = this.children;
+    const _children = this.children;
     this._validateAdd(child);
     child._clearCaches();
     child.index = _children.length;
-    child.parent = this;
+    child.parent = this as any;
     _children.push(child);
     this._fire('add', {
       child: child,
@@ -189,13 +189,15 @@ export abstract class Container<ChildType extends Node> extends Node<
    *  return node.getType() === 'Node' && node.getAbsoluteOpacity() < 1;
    * });
    */
-  find<ChildNode extends Node = Node>(selector): Collection<ChildNode> {
+  find<ChildNode extends Node = Node>(
+    selector: string | Function
+  ): Collection<ChildNode> {
     // protecting _generalFind to prevent user from accidentally adding
     // second argument and getting unexpected `findOne` result
     return this._generalFind<ChildNode>(selector, false);
   }
 
-  get(selector) {
+  get(selector: string | Function) {
     Util.warn(
       'collection.get() method is deprecated. Please use collection.find() instead.'
     );
@@ -229,10 +231,10 @@ export abstract class Container<ChildType extends Node> extends Node<
   ) {
     var retArr: Array<ChildNode> = [];
 
-    this._descendants((node: ChildNode) => {
+    this._descendants((node) => {
       const valid = node._isMatch(selector);
       if (valid) {
-        retArr.push(node);
+        retArr.push(node as ChildNode);
       }
       if (valid && findOne) {
         return true;
@@ -314,10 +316,10 @@ export abstract class Container<ChildType extends Node> extends Node<
    * @param {Number} pos.y
    * @returns {Array} array of shapes
    */
-  getAllIntersections(pos) {
-    var arr = [];
+  getAllIntersections(pos: Vector2d): Shape[] {
+    const arr: Shape[] = [];
 
-    this.find('Shape').each(function (shape: Shape) {
+    this.find<Shape>('Shape').each(function (shape: Shape) {
       if (shape.isVisible() && shape.intersects(pos)) {
         arr.push(shape);
       }
@@ -331,11 +333,11 @@ export abstract class Container<ChildType extends Node> extends Node<
     });
   }
   drawScene(can?: SceneCanvas, top?: Node) {
-    var layer = this.getLayer(),
-      canvas = can || (layer && layer.getCanvas()),
-      context = canvas && canvas.getContext(),
-      cachedCanvas = this._getCanvasCache(),
-      cachedSceneCanvas = cachedCanvas && cachedCanvas.scene;
+    const layer = this.getLayer();
+    const canvas = can || (layer && layer.getCanvas());
+    const context = canvas && canvas.getContext();
+    const cachedCanvas = this._getCanvasCache();
+    const cachedSceneCanvas = cachedCanvas && cachedCanvas.scene;
 
     var caching = canvas && canvas.isCache;
     if (!this.isVisible() && !caching) {

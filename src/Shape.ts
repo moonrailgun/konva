@@ -15,6 +15,7 @@ import * as PointerEvents from './PointerEvents';
 
 import { GetSet, Vector2d } from './types';
 import { HitCanvas, SceneCanvas } from './Canvas';
+import { Stage } from './Stage';
 
 // hack from here https://stackoverflow.com/questions/52667959/what-is-the-purpose-of-bivariancehack-in-typescript-types/52668133#52668133
 export type ShapeConfigHandler<TTarget> = {
@@ -98,7 +99,7 @@ function getDummyContext(): CanvasRenderingContext2D {
   if (dummyContext) {
     return dummyContext;
   }
-  dummyContext = Util.createCanvasElement().getContext('2d');
+  dummyContext = Util.createCanvasElement().getContext('2d')!;
   return dummyContext;
 }
 
@@ -110,36 +111,36 @@ export const shapes: { [key: string]: Shape } = {};
 // the approach is good. But what if we want to cache the shape before we add it into the stage
 // what color to use for hit test?
 
-function _fillFunc(context) {
+function _fillFunc(context: Context) {
   context.fill();
 }
-function _strokeFunc(context) {
+function _strokeFunc(context: Context) {
   context.stroke();
 }
-function _fillFuncHit(context) {
+function _fillFuncHit(context: Context) {
   context.fill();
 }
-function _strokeFuncHit(context) {
+function _strokeFuncHit(context: Context) {
   context.stroke();
 }
 
-function _clearHasShadowCache() {
+function _clearHasShadowCache(this: Shape) {
   this._clearCache(HAS_SHADOW);
 }
 
-function _clearGetShadowRGBACache() {
+function _clearGetShadowRGBACache(this: Shape) {
   this._clearCache(SHADOW_RGBA);
 }
 
-function _clearFillPatternCache() {
+function _clearFillPatternCache(this: Shape) {
   this._clearCache(patternImage);
 }
 
-function _clearLinearGradientCache() {
+function _clearLinearGradientCache(this: Shape) {
   this._clearCache(linearGradient);
 }
 
-function _clearRadialGradientCache() {
+function _clearRadialGradientCache(this: Shape) {
   this._clearCache(radialGradient);
 }
 
@@ -172,13 +173,13 @@ function _clearRadialGradientCache() {
 export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
   Config
 > {
-  _centroid: boolean;
-  colorKey: string;
+  _centroid!: boolean;
+  colorKey?: string;
 
-  _fillFunc: (ctx: Context) => void;
-  _strokeFunc: (ctx: Context) => void;
-  _fillFuncHit: (ctx: Context) => void;
-  _strokeFuncHit: (ctx: Context) => void;
+  _fillFunc!: (ctx: Context) => void;
+  _strokeFunc!: (ctx: Context) => void;
+  _fillFuncHit!: (ctx: Context) => void;
+  _strokeFuncHit!: (ctx: Context) => void;
 
   constructor(config?: Config) {
     super(config);
@@ -203,7 +204,7 @@ export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
    * @returns {Konva.Context}
    */
   getContext() {
-    return this.getLayer().getContext();
+    return this.getLayer()?.getContext();
   }
   /**
    * get canvas renderer tied to the layer.  Note that this returns a canvas renderer, not a canvas element
@@ -212,7 +213,7 @@ export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
    * @returns {Konva.Canvas}
    */
   getCanvas() {
-    return this.getLayer().getCanvas();
+    return this.getLayer()?.getCanvas();
   }
 
   getSceneFunc() {
@@ -415,14 +416,18 @@ export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
    * @param {Number} point.y
    * @returns {Boolean}
    */
-  intersects(point) {
-    var stage = this.getStage(),
-      bufferHitCanvas = stage.bufferHitCanvas,
-      p;
+  intersects(point: Vector2d) {
+    const stage = this.getStage();
+
+    if (!stage) {
+      return false;
+    }
+
+    const bufferHitCanvas = stage.bufferHitCanvas;
 
     bufferHitCanvas.getContext().clear();
-    this.drawHit(bufferHitCanvas, null, true);
-    p = bufferHitCanvas.context.getImageData(
+    this.drawHit(bufferHitCanvas, undefined, true);
+    const p = bufferHitCanvas.context.getImageData(
       Math.round(point.x),
       Math.round(point.y),
       1,
@@ -562,15 +567,12 @@ export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
     // 2 - when we are caching current
     // 3 - when node is cached and we need to draw it into layer
 
-    var layer = this.getLayer(),
-      canvas = can || layer.getCanvas(),
-      context = canvas.getContext() as SceneContext,
-      cachedCanvas = this._getCanvasCache(),
-      drawFunc = this.getSceneFunc(),
-      hasShadow = this.hasShadow(),
-      stage,
-      bufferCanvas,
-      bufferContext;
+    const layer = this.getLayer();
+    const canvas = can || layer!.getCanvas();
+    const context = canvas.getContext() as SceneContext;
+    const cachedCanvas = this._getCanvasCache();
+    const drawFunc = this.getSceneFunc();
+    const hasShadow = this.hasShadow();
 
     var caching = canvas.isCache;
     var skipBuffer = canvas.isCache;
@@ -597,9 +599,9 @@ export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
     context.save();
     // if buffer canvas is needed
     if (this._useBufferCanvas() && !skipBuffer) {
-      stage = this.getStage();
-      bufferCanvas = stage.bufferCanvas;
-      bufferContext = bufferCanvas.getContext();
+      const stage = this.getStage();
+      const bufferCanvas = stage!.bufferCanvas;
+      const bufferContext = bufferCanvas.getContext();
       bufferContext.clear();
       bufferContext.save();
       bufferContext._applyLineJoin(this);
@@ -648,12 +650,12 @@ export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
       return this;
     }
 
-    var layer = this.getLayer(),
-      canvas = can || layer.hitCanvas,
-      context = canvas && canvas.getContext(),
-      drawFunc = this.hitFunc() || this.sceneFunc(),
-      cachedCanvas = this._getCanvasCache(),
-      cachedHitCanvas = cachedCanvas && cachedCanvas.hit;
+    const layer = this.getLayer();
+    const canvas = can || layer!.hitCanvas;
+    const context = canvas && canvas.getContext();
+    const drawFunc = this.hitFunc() || this.sceneFunc();
+    const cachedCanvas = this._getCanvasCache();
+    const cachedHitCanvas = cachedCanvas && cachedCanvas.hit;
 
     if (!this.colorKey) {
       console.log(this);
@@ -700,31 +702,25 @@ export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
    * shape.drawHitFromCache();
    */
   drawHitFromCache(alphaThreshold = 0) {
-    var cachedCanvas = this._getCanvasCache(),
-      sceneCanvas = this._getCachedSceneCanvas(),
-      hitCanvas = cachedCanvas.hit,
-      hitContext = hitCanvas.getContext(),
-      hitWidth = hitCanvas.getWidth(),
-      hitHeight = hitCanvas.getHeight(),
-      hitImageData,
-      hitData,
-      len,
-      rgbColorKey,
-      i,
-      alpha;
+    const cachedCanvas = this._getCanvasCache();
+    const sceneCanvas = this._getCachedSceneCanvas();
+    const hitCanvas = cachedCanvas.hit;
+    const hitContext = hitCanvas.getContext();
+    const hitWidth = hitCanvas.getWidth();
+    const hitHeight = hitCanvas.getHeight();
 
     hitContext.clear();
     hitContext.drawImage(sceneCanvas._canvas, 0, 0, hitWidth, hitHeight);
 
     try {
-      hitImageData = hitContext.getImageData(0, 0, hitWidth, hitHeight);
-      hitData = hitImageData.data;
-      len = hitData.length;
-      rgbColorKey = Util._hexToRgb(this.colorKey);
+      const hitImageData = hitContext.getImageData(0, 0, hitWidth, hitHeight);
+      const hitData = hitImageData.data;
+      const len = hitData.length;
+      const rgbColorKey = Util._hexToRgb(this.colorKey);
 
       // replace non transparent pixels with color key
-      for (i = 0; i < len; i += 4) {
-        alpha = hitData[i + 3];
+      for (let i = 0; i < len; i += 4) {
+        const alpha = hitData[i + 3];
         if (alpha > alphaThreshold) {
           hitData[i] = rgbColorKey.r;
           hitData[i + 1] = rgbColorKey.g;
@@ -754,6 +750,10 @@ export class Shape<Config extends ShapeConfig = ShapeConfig> extends Node<
 
   releaseCapture(pointerId: number) {
     PointerEvents.releaseCapture(pointerId, this);
+  }
+
+  getStrokeScaleEnabled() {
+    return false;
   }
 
   draggable: GetSet<boolean, this>;
