@@ -2,14 +2,14 @@ import { glob } from './Global';
 import { Layer } from './Layer';
 import { IFrame, AnimationFn } from './types';
 
-var now = (function(): () => number {
+var now = (function (): () => number {
   if (glob.performance && glob.performance.now) {
-    return function() {
+    return function () {
       return glob.performance.now();
     };
   }
 
-  return function() {
+  return function () {
     return new Date().getTime();
   };
 })();
@@ -40,16 +40,16 @@ export class Animation {
   func: AnimationFn;
   id = Animation.animIdCounter++;
 
-  layers: Layer[];
+  layers!: Layer[];
 
-  frame : IFrame = {
+  frame: IFrame = {
     time: 0,
     timeDiff: 0,
     lastTime: now(),
-    frameRate: 0
+    frameRate: 0,
   };
 
-  constructor(func: AnimationFn, layers?) {
+  constructor(func: AnimationFn, layers?: Layer[]) {
     this.func = func;
     this.setLayers(layers);
   }
@@ -60,12 +60,12 @@ export class Animation {
    * @param {Konva.Layer|Array} [layers] layer(s) to be redrawn. Can be a layer, an array of layers, or null.  Not specifying a node will result in no redraw.
    * @return {Konva.Animation} this
    */
-  setLayers(layers) {
-    var lays = [];
+  setLayers(layers?: Layer[] | Layer) {
+    let lays: Layer[] = [];
     // if passing in no layers
     if (!layers) {
       lays = [];
-    } else if (layers.length > 0) {
+    } else if (Array.isArray(layers)) {
       // if passing in an array of Layers
       // NOTE: layers could be an array or Konva.Collection.  for simplicity, I'm just inspecting
       // the length property to check for both cases
@@ -94,13 +94,12 @@ export class Animation {
    * @param {Konva.Layer} layer to add
    * @return {Bool} true if layer is added to animation, otherwise false
    */
-  addLayer(layer) {
-    var layers = this.layers,
-      len = layers.length,
-      n;
+  addLayer(layer: Layer) {
+    const layers = this.layers;
+    const len = layers?.length ?? 0;
 
     // don't add the layer if it already exists
-    for (n = 0; n < len; n++) {
+    for (let n = 0; n < len; n++) {
       if (layers[n]._id === layer._id) {
         return false;
       }
@@ -116,12 +115,11 @@ export class Animation {
    * @return {Bool} is animation running?
    */
   isRunning() {
-    var a = Animation,
-      animations = a.animations,
-      len = animations.length,
-      n;
+    const a = Animation;
+    const animations = a.animations;
+    const len = animations.length;
 
-    for (n = 0; n < len; n++) {
+    for (let n = 0; n < len; n++) {
       if (animations[n].id === this.id) {
         return true;
       }
@@ -151,22 +149,22 @@ export class Animation {
     Animation._removeAnimation(this);
     return this;
   }
-  _updateFrameObject(time) {
+  _updateFrameObject(time: number) {
     this.frame.timeDiff = time - this.frame.lastTime;
     this.frame.lastTime = time;
     this.frame.time += this.frame.timeDiff;
     this.frame.frameRate = 1000 / this.frame.timeDiff;
   }
 
-  static animations = [];
+  static animations: Animation[] = [];
   static animIdCounter = 0;
   static animRunning = false;
 
-  static _addAnimation(anim) {
+  static _addAnimation(anim: Animation) {
     this.animations.push(anim);
     this._handleAnimation();
   }
-  static _removeAnimation(anim) {
+  static _removeAnimation(anim: Animation) {
     var id = anim.id,
       animations = this.animations,
       len = animations.length,
@@ -181,17 +179,12 @@ export class Animation {
   }
 
   static _runFrames() {
-    var layerHash = {},
-      animations = this.animations,
-      anim,
-      layers,
-      func,
-      n,
-      i,
-      layersLen,
-      layer,
-      key,
-      needRedraw;
+    const layerHash: {
+      [hashid: number]: Layer;
+    } = {};
+    const animations = this.animations;
+    let key;
+    let needRedraw;
     /*
      * loop through all animations and execute animation
      *  function.  if the animation object has specified node,
@@ -204,13 +197,13 @@ export class Animation {
      * the for loop is running, causing a JS error
      */
 
-    for (n = 0; n < animations.length; n++) {
-      anim = animations[n];
-      layers = anim.layers;
-      func = anim.func;
+    for (let n = 0; n < animations.length; n++) {
+      const anim = animations[n];
+      const layers = anim.layers;
+      const func = anim.func;
 
       anim._updateFrameObject(now());
-      layersLen = layers.length;
+      const layersLen = layers.length;
 
       // if animation object has a function, execute it
       if (func) {
@@ -222,8 +215,8 @@ export class Animation {
       if (!needRedraw) {
         continue;
       }
-      for (i = 0; i < layersLen; i++) {
-        layer = layers[i];
+      for (let i = 0; i < layersLen; i++) {
+        const layer = layers[i];
 
         if (layer._id !== undefined) {
           layerHash[layer._id] = layer;
