@@ -7,7 +7,7 @@ import { Konva } from './Global';
 
 import { GetSet, IRect, Vector2d } from './types';
 import { Shape } from './Shape';
-import { HitCanvas, SceneCanvas } from './Canvas';
+import { Canvas, HitCanvas, SceneCanvas } from './Canvas';
 
 export interface ContainerConfig extends NodeConfig {
   clearBeforeDraw?: boolean;
@@ -344,7 +344,7 @@ export abstract class Container<ChildType extends Node> extends Node<
       return this;
     }
 
-    if (cachedSceneCanvas) {
+    if (cachedSceneCanvas && context) {
       context.save();
       var m = this.getAbsoluteTransform(top).getMatrix();
       context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
@@ -366,7 +366,7 @@ export abstract class Container<ChildType extends Node> extends Node<
       cachedCanvas = this._getCanvasCache(),
       cachedHitCanvas = cachedCanvas && cachedCanvas.hit;
 
-    if (cachedHitCanvas) {
+    if (cachedHitCanvas && context) {
       context.save();
       var m = this.getAbsoluteTransform(top).getMatrix();
       context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
@@ -377,26 +377,30 @@ export abstract class Container<ChildType extends Node> extends Node<
     }
     return this;
   }
-  _drawChildren(drawMethod, canvas, top) {
-    var context = canvas && canvas.getContext(),
-      clipWidth = this.clipWidth(),
-      clipHeight = this.clipHeight(),
-      clipFunc = this.clipFunc(),
-      hasClip = (clipWidth && clipHeight) || clipFunc;
+  _drawChildren(drawMethod: string, canvas: Canvas | null, top?: Node) {
+    const context = canvas && canvas.getContext();
+    const clipWidth = this.clipWidth();
+    const clipHeight = this.clipHeight();
+    const clipFunc = this.clipFunc();
+    const hasClip = (clipWidth && clipHeight) || clipFunc;
 
     const selfCache = top === this;
 
+    if (!context) {
+      return;
+    }
+
     if (hasClip) {
       context.save();
-      var transform = this.getAbsoluteTransform(top);
-      var m = transform.getMatrix();
+      const transform = this.getAbsoluteTransform(top);
+      let m = transform.getMatrix();
       context.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
       context.beginPath();
       if (clipFunc) {
-        clipFunc.call(this, context, this);
+        clipFunc.call(this, context._context, this);
       } else {
-        var clipX = this.clipX();
-        var clipY = this.clipY();
+        const clipX = this.clipX();
+        const clipY = this.clipY();
         context.rect(clipX, clipY, clipWidth, clipHeight);
       }
       context.clip();
@@ -411,11 +415,12 @@ export abstract class Container<ChildType extends Node> extends Node<
 
     if (hasComposition) {
       context.save();
-      context._applyGlobalCompositeOperation(this);
+      context._applyGlobalCompositeOperation(this as any);
     }
 
     this.children.each(function (child) {
-      child[drawMethod](canvas, top);
+      const fn = (child as any)[drawMethod]; // TODO: This type is not good
+      fn(canvas, top);
     });
     if (hasComposition) {
       context.restore();
@@ -426,24 +431,29 @@ export abstract class Container<ChildType extends Node> extends Node<
     }
   }
 
-  getClientRect(config?: {
-    skipTransform?: boolean;
-    skipShadow?: boolean;
-    skipStroke?: boolean;
-    relativeTo?: Container<Node>;
-  }): IRect {
-    config = config || {};
-    var skipTransform = config.skipTransform;
-    var relativeTo = config.relativeTo;
+  getClientRect(
+    config: {
+      skipTransform?: boolean;
+      skipShadow?: boolean;
+      skipStroke?: boolean;
+      relativeTo?: Container<Node>;
+    } = {}
+  ): IRect {
+    const skipTransform = config.skipTransform;
+    const relativeTo = config.relativeTo;
 
-    var minX, minY, maxX, maxY;
-    var selfRect = {
+    let selfRect = {
       x: Infinity,
       y: Infinity,
       width: 0,
       height: 0,
     };
-    var that = this;
+    const that = this;
+
+    let minX!: number;
+    let minY!: number;
+    let maxX!: number;
+    let maxY!: number;
     this.children.each(function (child) {
       // skip invisible children
       if (!child.visible()) {
@@ -451,7 +461,7 @@ export abstract class Container<ChildType extends Node> extends Node<
       }
 
       var rect = child.getClientRect({
-        relativeTo: that,
+        relativeTo: that as any,
         skipShadow: config.skipShadow,
         skipStroke: config.skipStroke,
       });
@@ -476,10 +486,10 @@ export abstract class Container<ChildType extends Node> extends Node<
     });
 
     // if child is group we need to make sure it has visible shapes inside
-    var shapes = this.find('Shape');
-    var hasVisible = false;
-    for (var i = 0; i < shapes.length; i++) {
-      var shape = shapes[i];
+    let shapes = this.find('Shape');
+    let hasVisible = false;
+    for (let i = 0; i < shapes.length; i++) {
+      let shape = shapes[i];
       if (shape._isVisible(this)) {
         hasVisible = true;
         break;
@@ -507,14 +517,14 @@ export abstract class Container<ChildType extends Node> extends Node<
     return selfRect;
   }
 
-  clip: GetSet<IRect, this>;
-  clipX: GetSet<number, this>;
-  clipY: GetSet<number, this>;
-  clipWidth: GetSet<number, this>;
-  clipHeight: GetSet<number, this>;
+  clip!: GetSet<IRect, this>;
+  clipX!: GetSet<number, this>;
+  clipY!: GetSet<number, this>;
+  clipWidth!: GetSet<number, this>;
+  clipHeight!: GetSet<number, this>;
   // there was "this" instead of "Container<ChildType>",
   // but it breaks react-konva types: https://github.com/konvajs/react-konva/issues/390
-  clipFunc: GetSet<
+  clipFunc!: GetSet<
     (ctx: CanvasRenderingContext2D, shape: Container<ChildType>) => void,
     this
   >;

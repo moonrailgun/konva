@@ -4,6 +4,7 @@ import { Layer } from './Layer';
 import { _registerNode } from './Global';
 
 /**
+ * @deprecated Please use `Konva.Layer({ listening: false})` instead.
  * FastLayer constructor. **DEPRECATED!** Please use `Konva.Layer({ listening: false})` instead. Layers are tied to their own canvas element and are used
  * to contain shapes only.  If you don't need node nesting, mouse and touch interactions,
  * or event pub/sub, you should use FastLayer instead of Layer to create your layers.
@@ -17,7 +18,7 @@ import { _registerNode } from './Global';
  * var layer = new Konva.FastLayer();
  */
 export class FastLayer extends Layer {
-  constructor(attrs) {
+  constructor(attrs: any) {
     super(attrs);
     this.listening(false);
     Util.warn(

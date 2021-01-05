@@ -5,14 +5,14 @@ import { Factory } from './Factory';
 import { getNumberValidator } from './Validators';
 
 // calculate pixel ratio
-var _pixelRatio;
+let _pixelRatio: number;
 function getDevicePixelRatio() {
   if (_pixelRatio) {
     return _pixelRatio;
   }
   var canvas = Util.createCanvasElement();
   var context = canvas.getContext('2d') as any;
-  _pixelRatio = (function() {
+  _pixelRatio = (function () {
     var devicePixelRatio = Konva._global.devicePixelRatio || 1,
       backingStoreRatio =
         context.webkitBackingStorePixelRatio ||
@@ -53,9 +53,9 @@ export class Canvas {
   isCache = false;
 
   constructor(config: ICanvasConfig) {
-    var conf = config || {};
+    const conf = config || {};
 
-    var pixelRatio =
+    const pixelRatio =
       conf.pixelRatio || Konva.pixelRatio || getDevicePixelRatio();
 
     this.pixelRatio = pixelRatio;
@@ -69,6 +69,9 @@ export class Canvas {
     this._canvas.style.position = 'absolute';
     this._canvas.style.top = '0';
     this._canvas.style.left = '0';
+
+    // Ensure context have data
+    this.context = new Context(this);
   }
 
   /**
@@ -83,7 +86,7 @@ export class Canvas {
   getPixelRatio() {
     return this.pixelRatio;
   }
-  setPixelRatio(pixelRatio) {
+  setPixelRatio(pixelRatio: number) {
     var previousRatio = this.pixelRatio;
     this.pixelRatio = pixelRatio;
     this.setSize(
@@ -91,7 +94,7 @@ export class Canvas {
       this.getHeight() / previousRatio
     );
   }
-  setWidth(width) {
+  setWidth(width: number) {
     // take into account pixel ratio
     this.width = this._canvas.width = width * this.pixelRatio;
     this._canvas.style.width = width + 'px';
@@ -100,7 +103,7 @@ export class Canvas {
       _context = this.getContext()._context;
     _context.scale(pixelRatio, pixelRatio);
   }
-  setHeight(height) {
+  setHeight(height: number) {
     // take into account pixel ratio
     this.height = this._canvas.height = height * this.pixelRatio;
     this._canvas.style.height = height + 'px';
@@ -114,7 +117,7 @@ export class Canvas {
   getHeight() {
     return this.height;
   }
-  setSize(width, height) {
+  setSize(width: number, height: number) {
     this.setWidth(width || 0);
     this.setHeight(height || 0);
   }
@@ -126,7 +129,7 @@ export class Canvas {
    * @param {Number} quality between 0 and 1 for jpg mime types
    * @returns {String} data url string
    */
-  toDataURL(mimeType, quality) {
+  toDataURL(mimeType: string, quality: number) {
     try {
       // If this call fails (due to browser bug, like in Firefox 3.6),
       // then revert to previous no-parameter image/png behavior
@@ -169,19 +172,19 @@ export class Canvas {
 Factory.addGetterSetter(Canvas, 'pixelRatio', undefined, getNumberValidator());
 
 export class SceneCanvas extends Canvas {
-  constructor(config: ICanvasConfig = { width: 0, height: 0 }) {
+  constructor(config: ICanvasConfig) {
     super(config);
     this.context = new SceneContext(this);
-    this.setSize(config.width, config.height);
+    this.setSize(config.width ?? 0, config.height ?? 0);
   }
 }
 
 export class HitCanvas extends Canvas {
   hitCanvas = true;
-  constructor(config: ICanvasConfig = { width: 0, height: 0 }) {
+  constructor(config: ICanvasConfig) {
     super(config);
 
     this.context = new HitContext(this);
-    this.setSize(config.width, config.height);
+    this.setSize(config.width ?? 0, config.height ?? 0);
   }
 }

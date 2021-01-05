@@ -2,6 +2,18 @@ import { Util } from './Util';
 import { Konva } from './Global';
 import { Canvas } from './Canvas';
 import { Shape } from './Shape';
+import { IRect } from './types';
+
+type TraceItemType =
+  | string
+  | {
+      method: string;
+      args: any[];
+    }
+  | {
+      property: any;
+      val: any;
+    };
 
 var COMMA = ',',
   OPEN_PAREN = '(',
@@ -93,14 +105,14 @@ const traceArrMax = 100;
 export class Context {
   canvas: Canvas;
   _context: CanvasRenderingContext2D;
-  traceArr: Array<String>;
+  traceArr: Array<TraceItemType>;
 
   constructor(canvas: Canvas) {
     this.canvas = canvas;
     this._context = canvas._canvas.getContext('2d') as CanvasRenderingContext2D;
 
+    this.traceArr = [];
     if (Konva.enableTrace) {
-      this.traceArr = [];
       this._enableTrace();
     }
   }
@@ -117,7 +129,7 @@ export class Context {
     }
   }
 
-  _fill(shape) {
+  _fill(shape: Shape) {
     // abstract
   }
   /**
@@ -132,7 +144,7 @@ export class Context {
     }
   }
 
-  _stroke(shape) {
+  _stroke(shape: Shape) {
     // abstract
   }
 
@@ -152,22 +164,19 @@ export class Context {
     }
   }
 
-  getTrace(relaxed) {
+  getTrace(relaxed: boolean) {
     var traceArr = this.traceArr,
       len = traceArr.length,
       str = '',
-      n,
-      trace,
-      method,
-      args;
+      n;
 
     for (n = 0; n < len; n++) {
-      trace = traceArr[n];
-      method = trace.method;
+      const trace = traceArr[n] as any;
+      const method = trace.method;
 
       // methods
       if (method) {
-        args = trace.args;
+        const args = trace.args;
         str += method;
         if (relaxed) {
           str += DOUBLE_PAREN;
@@ -195,12 +204,11 @@ export class Context {
   clearTrace() {
     this.traceArr = [];
   }
-  _trace(str) {
-    var traceArr = this.traceArr,
-      len;
+  _trace(str: TraceItemType) {
+    const traceArr = this.traceArr;
 
     traceArr.push(str);
-    len = traceArr.length;
+    const len = traceArr.length;
 
     if (len >= traceArrMax) {
       traceArr.shift();
@@ -234,7 +242,7 @@ export class Context {
    * @param {Number} [bounds.width]
    * @param {Number} [bounds.height]
    */
-  clear(bounds?) {
+  clear(bounds?: IRect) {
     var canvas = this.getCanvas();
 
     if (bounds) {
@@ -253,7 +261,7 @@ export class Context {
       );
     }
   }
-  _applyLineCap(shape) {
+  _applyLineCap(shape: any) {
     var lineCap = shape.getLineCap();
     if (lineCap) {
       this.setAttr('lineCap', lineCap);
@@ -272,8 +280,8 @@ export class Context {
     }
   }
 
-  setAttr(attr, val) {
-    this._context[attr] = val;
+  setAttr(attr: string, val: any) {
+    (this._context as any)[attr] = val;
   }
 
   /**
@@ -351,7 +359,7 @@ export class Context {
    * @method
    * @name Konva.Context#createImageData
    */
-  createImageData(a0, a1) {
+  public createImageData(a0: any, a1: any): ImageData | undefined {
     var a = arguments;
     if (a.length === 2) {
       return this._context.createImageData(a0, a1);
@@ -364,7 +372,7 @@ export class Context {
    * @method
    * @name Konva.Context#createLinearGradient
    */
-  createLinearGradient(a0, a1, a2, a3) {
+  createLinearGradient(a0: number, a1: number, a2: number, a3: number) {
     return this._context.createLinearGradient(a0, a1, a2, a3);
   }
   /**
@@ -372,7 +380,7 @@ export class Context {
    * @method
    * @name Konva.Context#createPattern
    */
-  createPattern(a0, a1) {
+  createPattern(a0: CanvasImageSource, a1: string | null) {
     return this._context.createPattern(a0, a1);
   }
   /**
@@ -380,7 +388,14 @@ export class Context {
    * @method
    * @name Konva.Context#createRadialGradient
    */
-  createRadialGradient(a0, a1, a2, a3, a4, a5) {
+  createRadialGradient(
+    a0: number,
+    a1: number,
+    a2: number,
+    a3: number,
+    a4: number,
+    a5: number
+  ) {
     return this._context.createRadialGradient(a0, a1, a2, a3, a4, a5);
   }
   /**
@@ -405,9 +420,9 @@ export class Context {
     if (a.length === 3) {
       _context.drawImage(a0, a1, a2);
     } else if (a.length === 5) {
-      _context.drawImage(a0, a1, a2, a3, a4);
+      _context.drawImage(a0, a1, a2, a3!, a4!);
     } else if (a.length === 9) {
-      _context.drawImage(a0, a1, a2, a3, a4, a5, a6, a7, a8);
+      _context.drawImage(a0, a1, a2, a3!, a4!, a5!, a6!, a7!, a8!);
     }
   }
   /**
@@ -432,7 +447,7 @@ export class Context {
    * @method
    * @name Konva.Context#isPointInPath
    */
-  isPointInPath(x, y) {
+  isPointInPath(x: number, y: number) {
     return this._context.isPointInPath(x, y);
   }
   /**
@@ -448,7 +463,7 @@ export class Context {
    * @method
    * @name Konva.Context#fillRect
    */
-  fillRect(x, y, width, height) {
+  fillRect(x: number, y: number, width: number, height: number) {
     this._context.fillRect(x, y, width, height);
   }
   /**
@@ -456,7 +471,7 @@ export class Context {
    * @method
    * @name Konva.Context#strokeRect
    */
-  strokeRect(x, y, width, height) {
+  strokeRect(x: number, y: number, width: number, height: number) {
     this._context.strokeRect(x, y, width, height);
   }
   /**
@@ -464,15 +479,15 @@ export class Context {
    * @method
    * @name Konva.Context#fillText
    */
-  fillText(a0, a1, a2) {
-    this._context.fillText(a0, a1, a2);
+  fillText(text: string, x: number, y: number) {
+    this._context.fillText(text, x, y);
   }
   /**
    * measureText function.
    * @method
    * @name Konva.Context#measureText
    */
-  measureText(text) {
+  measureText(text: string) {
     return this._context.measureText(text);
   }
   /**
@@ -480,7 +495,7 @@ export class Context {
    * @method
    * @name Konva.Context#getImageData
    */
-  getImageData(a0, a1, a2, a3) {
+  getImageData(a0: number, a1: number, a2: number, a3: number) {
     return this._context.getImageData(a0, a1, a2, a3);
   }
   /**
@@ -488,7 +503,7 @@ export class Context {
    * @method
    * @name Konva.Context#lineTo
    */
-  lineTo(a0, a1) {
+  lineTo(a0: number, a1: number) {
     this._context.lineTo(a0, a1);
   }
   /**
@@ -496,7 +511,7 @@ export class Context {
    * @method
    * @name Konva.Context#moveTo
    */
-  moveTo(a0, a1) {
+  moveTo(a0: number, a1: number) {
     this._context.moveTo(a0, a1);
   }
   /**
@@ -504,7 +519,7 @@ export class Context {
    * @method
    * @name Konva.Context#rect
    */
-  rect(a0, a1, a2, a3) {
+  rect(a0: number, a1: number, a2: number, a3: number) {
     this._context.rect(a0, a1, a2, a3);
   }
   /**
@@ -512,7 +527,7 @@ export class Context {
    * @method
    * @name Konva.Context#putImageData
    */
-  putImageData(a0, a1, a2) {
+  putImageData(a0: ImageData, a1: number, a2: number) {
     this._context.putImageData(a0, a1, a2);
   }
   /**
@@ -520,7 +535,7 @@ export class Context {
    * @method
    * @name Konva.Context#quadraticCurveTo
    */
-  quadraticCurveTo(a0, a1, a2, a3) {
+  quadraticCurveTo(a0: number, a1: number, a2: number, a3: number) {
     this._context.quadraticCurveTo(a0, a1, a2, a3);
   }
   /**
@@ -536,7 +551,7 @@ export class Context {
    * @method
    * @name Konva.Context#rotate
    */
-  rotate(a0) {
+  rotate(a0: number) {
     this._context.rotate(a0);
   }
   /**
@@ -552,7 +567,7 @@ export class Context {
    * @method
    * @name Konva.Context#scale
    */
-  scale(a0, a1) {
+  scale(a0: number, a1: number) {
     this._context.scale(a0, a1);
   }
   /**
@@ -560,7 +575,7 @@ export class Context {
    * @method
    * @name Konva.Context#setLineDash
    */
-  setLineDash(a0) {
+  setLineDash(a0: number[]) {
     // works for Chrome and IE11
     if (this._context.setLineDash) {
       this._context.setLineDash(a0);
@@ -587,7 +602,14 @@ export class Context {
    * @method
    * @name Konva.Context#setTransform
    */
-  setTransform(a0, a1, a2, a3, a4, a5) {
+  setTransform(
+    a0: number,
+    a1: number,
+    a2: number,
+    a3: number,
+    a4: number,
+    a5: number
+  ) {
     this._context.setTransform(a0, a1, a2, a3, a4, a5);
   }
   /**
@@ -603,15 +625,27 @@ export class Context {
    * @method
    * @name Konva.Context#strokeText
    */
-  strokeText(a0, a1, a2, a3) {
-    this._context.strokeText(a0, a1, a2, a3);
+  strokeText(
+    text: string,
+    x: number,
+    y: number,
+    maxWidth?: number | undefined
+  ) {
+    this._context.strokeText(text, x, y, maxWidth);
   }
   /**
    * transform function.
    * @method
    * @name Konva.Context#transform
    */
-  transform(a0, a1, a2, a3, a4, a5) {
+  transform(
+    a0: number,
+    a1: number,
+    a2: number,
+    a3: number,
+    a4: number,
+    a5: number
+  ) {
     this._context.transform(a0, a1, a2, a3, a4, a5);
   }
   /**
@@ -619,7 +653,7 @@ export class Context {
    * @method
    * @name Konva.Context#translate
    */
-  translate(a0, a1) {
+  translate(a0: number, a1: number) {
     this._context.translate(a0, a1);
   }
   _enableTrace() {
@@ -631,11 +665,11 @@ export class Context {
       args;
 
     // to prevent creating scope function at each loop
-    var func = function (methodName) {
-      var origMethod = that[methodName],
-        ret;
+    const func = function (methodName: string) {
+      const origMethod = (that as any)[methodName];
+      let ret;
 
-      that[methodName] = function () {
+      (that as any)[methodName] = function () {
         args = _simplifyArray(Array.prototype.slice.call(arguments, 0));
         ret = origMethod.apply(that, arguments);
 
@@ -654,7 +688,7 @@ export class Context {
 
     // attrs
     that.setAttr = function () {
-      origSetter.apply(that, arguments);
+      origSetter.apply(that, arguments as any);
       var prop = arguments[0];
       var val = arguments[1];
       if (
@@ -670,8 +704,8 @@ export class Context {
       });
     };
   }
-  _applyGlobalCompositeOperation(node) {
-    var globalCompositeOperation = node.getGlobalCompositeOperation();
+  _applyGlobalCompositeOperation(node: Node) {
+    const globalCompositeOperation = (node as any).getGlobalCompositeOperation();
     if (globalCompositeOperation !== 'source-over') {
       this.setAttr('globalCompositeOperation', globalCompositeOperation);
     }
@@ -690,13 +724,13 @@ CONTEXT_PROPERTIES.forEach(function (prop) {
 });
 
 export class SceneContext extends Context {
-  _fillColor(shape) {
+  _fillColor(shape: Shape) {
     var fill = shape.fill();
 
     this.setAttr('fillStyle', fill);
     shape._fillFunc(this);
   }
-  _fillPattern(shape) {
+  _fillPattern(shape: any) {
     var fillPatternX = shape.getFillPatternX(),
       fillPatternY = shape.getFillPatternY(),
       fillPatternRotation = Konva.getAngle(shape.getFillPatternRotation()),
@@ -724,7 +758,7 @@ export class SceneContext extends Context {
     this.setAttr('fillStyle', shape._getFillPattern());
     shape._fillFunc(this);
   }
-  _fillLinearGradient(shape) {
+  _fillLinearGradient(shape: Shape) {
     var grd = shape._getLinearGradient();
 
     if (grd) {
@@ -732,14 +766,14 @@ export class SceneContext extends Context {
       shape._fillFunc(this);
     }
   }
-  _fillRadialGradient(shape) {
+  _fillRadialGradient(shape: Shape) {
     var grd = shape._getRadialGradient();
     if (grd) {
       this.setAttr('fillStyle', grd);
       shape._fillFunc(this);
     }
   }
-  _fill(shape) {
+  _fill(shape: any) {
     var hasColor = shape.fill(),
       fillPriority = shape.getFillPriority();
 
@@ -778,7 +812,7 @@ export class SceneContext extends Context {
       this._fillRadialGradient(shape);
     }
   }
-  _strokeLinearGradient(shape) {
+  _strokeLinearGradient(shape: any) {
     var start = shape.getStrokeLinearGradientStartPoint(),
       end = shape.getStrokeLinearGradientEndPoint(),
       colorStops = shape.getStrokeLinearGradientColorStops(),
@@ -830,7 +864,7 @@ export class SceneContext extends Context {
       }
     }
   }
-  _applyShadow(shape) {
+  _applyShadow(shape: any) {
     var util = Util,
       color = util.get(shape.getShadowRGBA(), 'black'),
       blur = util.get(shape.getShadowBlur(), 5),
@@ -854,7 +888,7 @@ export class SceneContext extends Context {
 }
 
 export class HitContext extends Context {
-  _fill(shape) {
+  _fill(shape: Shape) {
     this.save();
     this.setAttr('fillStyle', shape.colorKey);
     shape._fillFuncHit(this);
@@ -865,7 +899,7 @@ export class HitContext extends Context {
       this._stroke(shape);
     }
   }
-  _stroke(shape) {
+  _stroke(shape: Shape) {
     if (shape.hasHitStroke()) {
       // ignore strokeScaleEnabled for Text
       var strokeScaleEnabled = shape.getStrokeScaleEnabled();

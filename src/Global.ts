@@ -9,6 +9,8 @@
  *
  * @license
  */
+import type { Node } from './Node';
+
 var PI_OVER_180 = Math.PI / 180;
 /**
  * @namespace Konva
@@ -24,7 +26,7 @@ function detectBrowser() {
   );
 }
 
-const _detectIE = function(ua) {
+const _detectIE = function (ua: string) {
   var msie = ua.indexOf('msie ');
   if (msie > 0) {
     // IE 10 or older => return version number
@@ -48,7 +50,7 @@ const _detectIE = function(ua) {
   return false;
 };
 
-export const _parseUA = function(userAgent) {
+export const _parseUA = function (userAgent: string) {
   var ua = userAgent.toLowerCase(),
     // jQuery UA regex
     match =
@@ -71,7 +73,7 @@ export const _parseUA = function(userAgent) {
     isIE: _detectIE(ua),
     // adding mobile flab
     mobile: mobile,
-    ieMobile: ieMobile // If this is true (i.e., WP8), then Konva touch events are executed instead of equivalent Konva mouse events
+    ieMobile: ieMobile, // If this is true (i.e., WP8), then Konva touch events are executed instead of equivalent Konva mouse events
   };
 };
 
@@ -86,13 +88,14 @@ export const glob: any =
     ? self
     : {};
 
-export const Konva = {
+// TODO: I have no idea how to define this object type
+export const Konva: any = {
   _global: glob,
   version: '@@version',
   isBrowser: detectBrowser(),
-  isUnminified: /param/.test(function(param) {}.toString()),
+  isUnminified: /param/.test(function (param: any) {}.toString()),
   dblClickWindow: 400,
-  getAngle(angle) {
+  getAngle(angle: number) {
     return Konva.angleDeg ? angle * PI_OVER_180 : angle;
   },
   enableTrace: false,
@@ -204,15 +207,17 @@ export const Konva = {
   document: glob.document,
   // insert Konva into global namespace (window)
   // it is required for npm packages
-  _injectGlobal(Konva) {
+  _injectGlobal(Konva: any) {
     glob.Konva = Konva;
   },
-  _parseUA
+  _parseUA,
 };
 
-export const _NODES_REGISTRY = {};
+export const _NODES_REGISTRY: {
+  [className: string]: typeof Node;
+} = {};
 
-export const _registerNode = NodeClass => {
+export const _registerNode = (NodeClass: typeof Node) => {
   _NODES_REGISTRY[NodeClass.prototype.getClassName()] = NodeClass;
   Konva[NodeClass.prototype.getClassName()] = NodeClass;
 };
